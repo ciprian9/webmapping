@@ -8,6 +8,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('location/', views.location_list),
     path('location/<int:pk>/', views.location_detail),
+   # path('location/', views.world_list),
+   # path('location/<int:pk>/', views.world_detail),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
