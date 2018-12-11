@@ -1,65 +1,56 @@
-from django.shortcuts import render
+#from django.shortcuts import render
 
 # Create your views here.
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+#from rest_framework import status
+#from rest_framework.decorators import api_view
+#from rest_framework.response import Response
 #from .models import Location, WorldBorder
 #from .serializer import LocationSerializer
 import json, re
 import requests
+from django.http import JsonResponse
 from django.core import serializers
 from django.template.response import TemplateResponse
 from .distance_of_points import distance_checker
 from .dublin_bikes_api import json_data_import
 from .models import DublinBikes
+from .sql_selector import SELECT_ALL_DATA_VALUES
 
 
+#json data view returns all the data in json format
 def json_all_stations(request):
+    #retrieve the users latituded and longitude
     lat = request.GET['lat']
     long = request.GET['long']
-
+    
+    #make a call to json data import to retrieve the json data from the api
     json_data = json_data_import()
     for i in json_data:
         DublinBikes.objects.all()
-    all_data = DublinBikes.objects.all()
+    all_data = SELECT_ALL_DATA_VALUES
     results = {}
     # for every queryset in the list serialize it.
     data = serializers.serialize("json", all_data)
     results[0] = json.loads(data)
     regex = r'\(([^)]+)\)'
-
+    
+    #set the format of the data to return it  
     for i in results[0]:
         coords = i['fields']['position']
         res = re.findall(regex, coords)
         blong, blat = res[0].split(' ')
+        #calculate the distance
         dist = distance_checker(lat, long, blat, blong)
         dist = float(dist) / 1000
         dist = round(dist, 2)
+        #save the distance
         i['distance'] = dist
     return JsonResponse(results)
 
 
-
+#use index template for the index page
 def index(request):
     return TemplateResponse(request, 'location/index.html')
-
-def all_stations(request):
-#    json_data = json_data_import()
-#    for i in json_data:
-#        DublinBikes.objects.filter(stand_number=i['number']).update(available_bike_stands=i['available_bike_stands'], 
-#                available_bikes=i['available_bikes'], last_update=i['last_update'])
-#    all_data = DublinBikes.objects.all()
-    return TemplateResponse(request, 'location/all_bike_stations.html')
-
-def find_nearest_station(request):
- #   json_data = json_data_import()
- #   for i in json_data:
- #       DublinBikes.objects.filter(stand_number=i['number']).update(available_bike_stands=i['available_bike_stands'], 
- #              available_bikes=i['available_bikes'], last_update=i['last_update'])
- #   all_data = DublinBikes.objects.all()
-    return TemplateResponse(request, 'location/find_nearest_station.html')
-
 
 def json_nearest_station(request):
         # Request address from form input
@@ -79,7 +70,7 @@ def json_nearest_station(request):
     for i in json_data:
         DublinBikes.objects.all()
 
-    all_data = DublinBikes.objects.all();
+    all_data = SELECT_ALL_DATA_VALUES
     reslts = {}
     data = serializers.serialize('json', all_data)
     results[0] = json.loads(data)
@@ -88,7 +79,7 @@ def json_nearest_station(request):
     for i in results[0]:
         coords = i['fields']['position']
         res = re.findall(regex, coords)
-        blon, blat = res[0].split(' ')
+        blong, blat = res[0].split(' ')
         dist = distance_checker(lat, lng, blat, blong)
         dist = float(dist) / 1000
         dist = round(dist, 2)
@@ -96,89 +87,5 @@ def json_nearest_station(request):
     results['lat'] = lat
     results['lng'] = lng
     return JsonResponse(results)
-
-
-
-
-
-
-"""
-@api_view(['GET', 'POST'])
-def location_list(request, format=None):
-    if request.method == 'GET':
-        locations = Location.objects.all()
-        serializer = LocationSerializer(locations, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = LocationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def location_detail(request, pk, format=None):
-    try:
-        location = Location.objects.get(pk=pk)
-    except Location.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = LocationSerializer(location)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = LocationSerializer(location, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        location.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(['GET', 'POST'])
-def world_list(request, format=None):
-    if request.method == 'GET':
-        results = WorldBorder.objects.all()
-        serializer = WorldBorderSerializer(results, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = WorldBorderSerializer(data=requst.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def world_detail(request, pk, format=None):
-    try:
-        world = WorldBorder.objects.get(pk=pk)
-    except WorldBorder.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = WorldBorderSerializer(world)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = WorldBorderSerializer(world, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        world.deleted()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-"""
-
-
 
 
