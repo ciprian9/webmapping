@@ -22,5 +22,4 @@ urlpatterns = [
    path('admin/', admin.site.urls),
    path('', views.index),
    path('json_all_stations/', views.json_all_stations),
-   path('json_nearest_station/', views.json_nearest_station),
 ]
